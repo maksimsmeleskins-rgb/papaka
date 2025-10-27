@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="lv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Art Gallery</title>
+  <style>
+    body {
+      font-family: Arial;
+      background: #f5f5f5;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background: #333;
+      color: white;
+      padding: 15px;
+      text-align: center;
+    }
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 15px;
+      padding: 20px;
+    }
+    .artwork {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      overflow: hidden;
+      text-align: center;
+      transition: transform 0.2s;
+    }
+    .artwork:hover {
+      transform: scale(1.05);
+    }
+    .artwork img {
+      width: 100%;
+      height: 150px;
+      object-fit: cover;
+    }
+    .artwork h3 {
+      margin: 10px 0 0;
+    }
+    .artwork p {
+      color: gray;
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+    input, button {
+      display: block;
+      margin: 15px auto;
+      padding: 10px;
+      font-size: 16px;
+      width: 80%;
+      max-width: 400px;
+    }
+    button {
+      background: #333;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    button:hover {
+      background: #555;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Art Gallery</h1>
+  </header>
+
+  <input type="text" id="search" placeholder="Meklēt pēc nosaukuma...">
+  <button id="addArtwork">Pievienot jaunu attēlu</button>
+
+  <div id="gallery" class="gallery"></div>
+
+  <script>
+    // ======== B2 Enkapsulācija ========
+    class Artwork {
+      #src;
+      #title;
+      #alt;
+      #tags;
+
+      constructor(src, title, alt, tags) {
+        this.#src = src;
+        this.#title = title;
+        this.#alt = alt;
+        this.#tags = tags;
+      }
+
+      get title() { return this.#title; }
+
+      matches(query) {
+        return this.#title.toLowerCase().includes(query.toLowerCase());
+      }
+
+      render() {
+        const div = document.createElement('div');
+        div.className = 'artwork';
+        div.innerHTML = `
+          <img src="${this.#src}" alt="${this.#alt}">
+          <h3>${this.#title}</h3>
+          <p>${this.#tags.join(', ')}</p>
+        `;
+        return div;
+      }
+
+      toJSON() {
+        return {
+          src: this.#src,
+          title: this.#title,
+          alt: this.#alt,
+          tags: this.#tags
+        };
+      }
+
+      static fromJSON(data) {
+        return new Artwork(data.src, data.title, data.alt, data.tags);
+      }
+    }
+
+    // ======== B3 Mantošana ========
+    class Base {
+      log(message) {
+        console.log(`[LOG]: ${message}`);
+      }
+    }
+
+    class Gallery extends Base {
+      constructor(artworks) {
+        super();
+        this.artworks = artworks;
+        this.container = document.getElementById('gallery');
+      }
+
+      renderAll(list = this.artworks) {
+        this.container.innerHTML = '';
+        list.forEach(a => this.container.appendChild(a.render()));
+        this.log('Gallery rendered');
+      }
+
+      filter(query) {
+        const filtered = this.artworks.filter(a => a.matches(query));
+        this.renderAll(filtered);
+      }
+
+      addArtwork(artwork) {
+        this.artworks.push(artwork);
+        this.saveToLocalStorage();
+        this.renderAll();
+        this.log('New artwork added');
+      }
+
+      saveToLocalStorage() {
+        const data = this.artworks.map(a => a.toJSON());
+        localStorage.setItem('galleryData', JSON.stringify(data));
+      }
+
+      loadFromLocalStorage() {
+        const saved = localStorage.getItem('galleryData');
+        if (saved) {
+          const arr = JSON.parse(saved);
+          this.artworks = arr.map(a => Artwork.fromJSON(a));
+          this.log('Data loaded from localStorage');
+        }
+      }
+    }
+
+    // ======== B1 Klases + reālā loģika ========
+    class Main {
+      constructor() {
+        this.gallery = null;
+      }
+
+      init() {
+        const defaultArtworks = [
+          new Artwork('https://ih1.redbubble.net/image.4968445700.9023/flat,750x,075,f-pad,750x1000,f8f8f8.jpg', 'Cuka', 'Pig', ['animal']),
+          new Artwork('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSccADCneW6ZJ1uKXBbFxgPfV7nMSqaMmZxxNWPGLddi1x4sab_sbLe-hm0o8AD15mLo_x0oObIwqeL_d-ZhfJE_NhX8wH2Q5qgurg07Lk', 'Pelmeni', 'dumplings', ['food']),
+          new Artwork('http://sun9-46.userapi.com/impg/P703zdCQSrcUrsUiLqpEwCohSNYm9oURKDQ6Lw/gOwMU8EJAcM.jpg?size=400x400&quality=95&sign=c44aef0105464010b9c9f227f8891f5c&type=audio', 'Lacis', 'bear', ['animal']),
+          new Artwork('https://cdn2.unrealengine.com/fortnite-og-social-1920x1080-a5adda66fab9.jpg', 'Fortnite', 'Fortnite', ['PCgame'])
+        ];
+
+        this.gallery = new Gallery(defaultArtworks);
+        this.gallery.loadFromLocalStorage();
+        this.gallery.renderAll();
+
+        // ======== B5 Notikumi ========
+        document.getElementById('search').addEventListener('input', (e) => {
+          this.gallery.filter(e.target.value);
+        });
+
+        document.getElementById('addArtwork').addEventListener('click', () => {
+          const title = prompt("Ievadi attēla nosaukumu:");
+          const src = prompt("Ievadi attēla URL (piem., https://picsum.photos/300):");
+          const tags = prompt("Ievadi tagus, atdalot ar komatu:").split(',');
+          if (title && src) {
+            const newArt = new Artwork(src, title, title, tags);
+            this.gallery.addArtwork(newArt);
+          }
+        });
+      }
+    }
+
+    // ======== Start ========
+    document.addEventListener('DOMContentLoaded', () => {
+      const app = new Main();
+      app.init();
+    });
+  </script>
+</body>
+</html>
