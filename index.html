@@ -78,7 +78,6 @@
   <div id="gallery" class="gallery"></div>
 
   <script>
-    // ======== B2 Enkapsulācija ========
     class Artwork {
       #src;
       #title;
@@ -123,7 +122,6 @@
       }
     }
 
-    // ======== B3 Mantošana ========
     class Base {
       log(message) {
         console.log(`[LOG]: ${message}`);
@@ -170,7 +168,6 @@
       }
     }
 
-    // ======== B1 Klases + reālā loģika ========
     class Main {
       constructor() {
         this.gallery = null;
@@ -188,7 +185,7 @@
         this.gallery.loadFromLocalStorage();
         this.gallery.renderAll();
 
-        // ======== B5 Notikumi ========
+
         document.getElementById('search').addEventListener('input', (e) => {
           this.gallery.filter(e.target.value);
         });
@@ -205,7 +202,7 @@
       }
     }
 
-    // ======== Start ========
+
     document.addEventListener('DOMContentLoaded', () => {
       const app = new Main();
       app.init();
